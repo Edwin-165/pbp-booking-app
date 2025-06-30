@@ -22,7 +22,7 @@ class PackageController extends Controller {
             'name' => 'required|string|max:255|unique:packages,name',
             'description' => 'required|string',
             'daily_price' => 'required|numeric|min:0',
-            'is_available' => 'boolean',
+            'stock' => 'required|integer|min:0',
         ]);
         $package = Package::create($request->all());
         return response()->json(['message' => 'Package created successfully', 'package' => $package], 201);
@@ -33,7 +33,7 @@ class PackageController extends Controller {
             'name' => 'sometimes|required|string|max:255|unique:packages,name,' . $package->id,
             'description' => 'sometimes|required|string',
             'daily_price' => 'sometimes|required|numeric|min:0',
-            'is_available' => 'sometimes|boolean',
+            'stock' => 'sometimes|required|integer|min:0',
         ]);
 
         $package->update($request->all()); // Langsung update dari semua request yang valid
@@ -42,6 +42,9 @@ class PackageController extends Controller {
     }
     // DELETE (Protected)
     public function destroy(Package $package) {
+        if ($package->bookings()->whereIn('status', ['pending', 'confirmed', 'rented'])->exists()) {
+            return response()->json(['message' => 'Cannot delete package: It has active or pending bookings.'], 409);
+        }
         $package->delete();
         return response()->json(['message' => 'Package deleted successfully'], 204);
     }

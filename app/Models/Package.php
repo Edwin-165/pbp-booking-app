@@ -13,20 +13,15 @@ class Package extends Model
         'name',
         'description',
         'daily_price',
-        'is_available',
+        'stock',
     ];
 
     protected $casts = [
-        'is_available' => 'boolean',
         'daily_price' => 'decimal:2',
+        'stock' => 'integer'
     ];
 
-    public function equipment()
-    {
-        // Relasi many-to-many dengan tabel pivot 'package_equipment'
-        return $this->belongsToMany(Equipment::class, 'package_equipment')->withPivot('quantity');
-    }
-
+    
     public function bookings()
     {
         return $this->hasMany(Booking::class);

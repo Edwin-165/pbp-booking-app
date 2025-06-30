@@ -19,8 +19,7 @@ return new class extends Migration
             $table->date('end_date'); // Tanggal selesai sewa
             $table->decimal('total_price', 10, 2); // Total biaya sewa
             $table->enum('status', ['pending', 'confirmed', 'rented', 'completed', 'cancelled'])->default('pending'); // Status pemesanan
-            $table->string('booking_code', 20)->unique(); // Kode unik pemesanan, misalnya INV-XYZ123
-
+            $table->string('booking_code', 20)->unique();
             $table->timestamps();
         });
     }

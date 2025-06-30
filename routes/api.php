@@ -16,24 +16,16 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/packages', [PackageController::class, 'index']);
 Route::get('/packages/{package}', [PackageController::class, 'show']);
 
-// Melihat daftar peralatan (semua bisa lihat)
-Route::get('/equipment', [EquipmentController::class, 'index']);
-Route::get('/equipment/{equipment}', [EquipmentController::class, 'show']);
-
 Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () {
     Route::post('/packages', [PackageController::class, 'store']);
     Route::put('/packages/{package}', [PackageController::class, 'update']);
     Route::delete('/packages/{package}', [PackageController::class, 'destroy']);
 
-    Route::post('/equipment', [EquipmentController::class, 'store']);
-    Route::put('/equipment/{equipment}', [EquipmentController::class, 'update']);
-    Route::delete('/equipment/{equipment}', [EquipmentController::class, 'destroy']);
-
     Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus']); // Update status booking oleh admin
 });
 
 // --- Protected Routes (Membutuhkan Autentikasi Laravel Sanctum) ---
-Route::middleware('auth:sanctum')->group(function () { // <-- Perubahan: auth:sanctum
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']); // Mendapatkan info user yang login
 

@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+
 class BookingController extends Controller {
-    public function __construct() {
-        $this->middleware('auth:sanctum'); // <-- Perubahan: Semua method di sini memerlukan autentikasi
-    }
+    
     // READ ALL bookings (untuk user yang login)
     public function index() {
         $bookings = Auth::user()->bookings()->with('package')->get();
@@ -24,17 +24,20 @@ class BookingController extends Controller {
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
         $package = Package::find($request->package_id);
-        if (!$package || !$package->is_available) {
+        if (!$package || $package->stock < 1) {
             return response()->json(['message' => 'Package is not available.'], 400);
         }
+        
         $startDate = Carbon::parse($request->start_date);
         $endDate = Carbon::parse($request->end_date);
         $durationInDays = $startDate->diffInDays($endDate) + 1;
         $totalPrice = $package->daily_price * $durationInDays;
+
         $bookingCode = 'INV-' . Str::upper(Str::random(8));
         while (Booking::where('booking_code', $bookingCode)->exists()) {
             $bookingCode = 'INV-' . Str::upper(Str::random(8));
         }
+        
         $overlappingBookings = Booking::where('package_id', $package->id)
             ->where(function($query) use ($startDate, $endDate) {
                 $query->whereBetween('start_date', [$startDate, $endDate])
@@ -49,15 +52,26 @@ class BookingController extends Controller {
         if ($overlappingBookings > 0) {
             return response()->json(['message' => 'Package is not available for the selected dates.'], 400);
         }
-        $booking = Booking::create([
-            'user_id' => Auth::id(),
-            'package_id' => $request->package_id,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-            'total_price' => $totalPrice,
-            'status' => 'pending',
-            'booking_code' => $bookingCode,
-        ]);
+
+        
+        DB::transaction(function () use ($request, $package, $totalPrice, $bookingCode) {
+            // Kurangi stock paket
+            $package->decrement('stock'); // Perubahan: Kurangi stock
+
+            $booking = Booking::create([
+                'user_id' => Auth::id(),
+                'package_id' => $request->package_id,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'total_price' => $totalPrice,
+                'status' => 'pending',
+                'booking_code' => $bookingCode,
+            ]);
+            // Respon harus dikembalikan di luar transaction atau diambil dari sini
+            // Namun untuk demo, kita akan return di luar transaction.
+        });
+
+        $booking = Booking::where('booking_code', $bookingCode)->first()->load('package');
         return response()->json(['message' => 'Booking created successfully', 'booking' => $booking->load('package')], 201);
     }
     // READ ONE booking (hanya untuk user yang bersangkutan)
@@ -70,14 +84,29 @@ class BookingController extends Controller {
     }
     // UPDATE status booking (khusus admin, perlu pengecekan role di sini)
     public function updateStatus(Request $request, Booking $booking) {
-        if (Auth::user()->role !== 'admin') { // <-- Pengecekan role admin
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+
         $request->validate([
             'status' => 'required|in:pending,confirmed,rented,completed,cancelled',
         ]);
-        $booking->status = $request->status;
-        $booking->save();
-        return response()->json(['message' => 'Booking status updated successfully', 'booking' => $booking]);
+
+        $oldStatus = $booking->status;
+        $newStatus = $request->status;
+
+        DB::transaction(function () use ($booking, $oldStatus, $newStatus) {
+            $package = $booking->package; // Dapatkan paket terkait
+
+            // Logika penambahan/pengurangan stock
+            // Jika status berubah ke 'completed' atau 'cancelled' DAN sebelumnya bukan status itu
+            if (in_array($newStatus, ['completed', 'cancelled']) && !in_array($oldStatus, ['completed', 'cancelled'])) {
+                $package->increment('stock'); // Tambah stock kembali
+            }
+            // Anda bisa menambahkan logika pengurangan stock jika booking dibatalkan lalu diaktifkan kembali
+            // Namun untuk kesederhanaan, fokus pada penambahan stock saat selesai/batal.
+
+            $booking->status = $newStatus;
+            $booking->save();
+        });
+
+        return response()->json(['message' => 'Booking status updated successfully', 'booking' => $booking->load('package')]);
     }
 }

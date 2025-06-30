@@ -17,10 +17,8 @@ class AuthController extends Controller {
             'password' => Hash::make($request->password),
             'role' => 'admin',
         ]);
-        // Sanctum akan membuat token di tabel personal_access_tokens
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json(['message' => 'User registered successfully', 'token' => $token, 'user' => $user], 201);
+        
+        return response()->json(['message' => 'User registered successfully', 'user' => $user], 201);
     }
     public function login(Request $request) {
         $request->validate([
@@ -33,8 +31,7 @@ class AuthController extends Controller {
                 'username' => ['The provided credentials do not match our records.'],
             ]);
         }
-        // Sanctum akan menghapus token lama dan membuat token baru
-        $user->tokens()->delete(); // Opsional: hapus token sebelumnya
+        
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json(['message' => 'Logged in successfully', 'token' => $token, 'user' => $user]);

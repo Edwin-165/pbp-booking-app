@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->text('description');
             $table->decimal('daily_price', 10, 2);
-            $table->boolean('is_available')->default(true);
+            $table->integer('stock')->default(1);
             $table->timestamps();
         });
     }
