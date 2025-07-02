@@ -38,22 +38,6 @@ class BookingController extends Controller {
             $bookingCode = 'INV-' . Str::upper(Str::random(8));
         }
         
-        $overlappingBookings = Booking::where('package_id', $package->id)
-            ->where(function($query) use ($startDate, $endDate) {
-                $query->whereBetween('start_date', [$startDate, $endDate])
-                      ->orWhereBetween('end_date', [$startDate, $endDate])
-                      ->orWhere(function($query) use ($startDate, $endDate) {
-                          $query->where('start_date', '<', $startDate)
-                                ->where('end_date', '>', $endDate);
-                      });
-            })
-            ->whereIn('status', ['pending', 'confirmed', 'rented'])
-            ->count();
-        if ($overlappingBookings > 0) {
-            return response()->json(['message' => 'Package is not available for the selected dates.'], 400);
-        }
-
-        
         DB::transaction(function () use ($request, $package, $totalPrice, $bookingCode) {
             // Kurangi stock paket
             $package->decrement('stock'); // Perubahan: Kurangi stock

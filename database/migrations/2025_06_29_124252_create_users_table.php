@@ -15,7 +15,9 @@ return new class extends Migration
             $table->increments('id');
             $table->string('username'); 
             $table->string('password'); 
-            $table->enum('role', ['user', 'admin'])->default('user'); // Default 'user'
+            $table->string('alamat');
+            $table->string('no_telp');
+            $table->enum('role', ['user', 'admin']);
             $table->timestamps(); // created_at dan updated_at
         });
     }

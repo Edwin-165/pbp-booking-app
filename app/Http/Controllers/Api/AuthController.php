@@ -11,10 +11,14 @@ class AuthController extends Controller {
         $request->validate([
             'username' => 'required|string|max:255|unique:users',
             'password' => 'required|string|min:8',
+            'alamat' => 'required|string|max:255',
+            'no_telp' => 'required|string|max:20',
         ]);
         $user = User::create([
             'username' => $request->username,
             'password' => Hash::make($request->password),
+            'alamat' => $request->alamat,
+            'no_telp' => $request->no_telp,
             'role' => 'admin',
         ]);
         
