@@ -13,8 +13,11 @@ class BookingController extends Controller {
     
     // READ ALL bookings (untuk user yang login)
     public function index() {
-        $bookings = Auth::user()->bookings()->with('package')->get();
-        return response()->json($bookings);
+        if (Auth::user()->role === 'admin') {
+            return response()->json(Booking::with('package', 'user')->get()); // Admin melihat semua booking
+        } else {
+            return response()->json(Auth::user()->bookings()->with('package')->get()); // User biasa melihat bookingnya sendiri
+        }
     }
     // CREATE booking
     public function store(Request $request) {
